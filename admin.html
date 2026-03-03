@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Ragini's Derma Clinic</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #C0392B; --red-light: #E74C3C; --red-deep: #96231A;
+    --bg: #F5F2EE; --white: #fff; --charcoal: #1C1C1E;
+    --mid: #4A4A4C; --muted: #8A8A8E; --border: #E8E4DF;
+    --green: #27AE60; --orange: #E67E22; --blue: #2980B9;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--charcoal); min-height: 100vh; }
+
+  /* LOGIN */
+  #loginScreen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--charcoal);
+  }
+  .login-card {
+    background: var(--white); border-radius: 8px; padding: 48px 40px;
+    width: 100%; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .login-logo { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--red); margin-bottom: 6px; }
+  .login-title { font-size: 1.5rem; font-weight: 700; color: var(--charcoal); margin-bottom: 28px; }
+  .login-group { margin-bottom: 16px; }
+  .login-group label { display: block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid); margin-bottom: 6px; }
+  .login-group input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 4px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
+  .login-group input:focus { border-color: var(--red); }
+  .login-btn { width: 100%; background: var(--red); color: var(--white); border: none; padding: 12px; border-radius: 4px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-top: 8px; letter-spacing: 0.06em; text-transform: uppercase; transition: background 0.2s; }
+  .login-btn:hover { background: var(--red-deep); }
+  .login-err { color: var(--red); font-size: 0.78rem; margin-top: 10px; text-align: center; display: none; }
+
+  /* DASHBOARD */
+  #dashboard { display: none; }
+  header {
+    background: var(--white); border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .hdr-brand { display: flex; flex-direction: column; }
+  .hdr-brand span:first-child { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--red); }
+  .hdr-brand span:last-child { font-size: 0.92rem; font-weight: 700; color: var(--charcoal); }
+  .hdr-right { display: flex; align-items: center; gap: 16px; }
+  .hdr-user { font-size: 0.78rem; color: var(--muted); }
+  .logout-btn { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; color: var(--mid); transition: all 0.2s; }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  main { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: var(--white); border-radius: 6px; padding: 20px 24px; border-top: 3px solid var(--border); }
+  .stat-card.red { border-top-color: var(--red); }
+  .stat-card.green { border-top-color: var(--green); }
+  .stat-card.orange { border-top-color: var(--orange); }
+  .stat-card.blue { border-top-color: var(--blue); }
+  .stat-val { font-size: 2rem; font-weight: 700; color: var(--charcoal); line-height: 1; }
+  .stat-label { font-size: 0.72rem; color: var(--muted); font-weight: 500; margin-top: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* FILTERS */
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .toolbar h2 { font-size: 1rem; font-weight: 700; flex: 1; }
+  .filter-btn { padding: 7px 16px; border-radius: 100px; border: 1.5px solid var(--border); font-size: 0.75rem; font-weight: 600; cursor: pointer; background: var(--white); color: var(--mid); transition: all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { background: var(--charcoal); color: var(--white); border-color: var(--charcoal); }
+  .filter-btn.pending.active { background: var(--orange); border-color: var(--orange); }
+  .filter-btn.confirmed.active { background: var(--green); border-color: var(--green); }
+  .filter-btn.completed.active { background: var(--blue); border-color: var(--blue); }
+  .filter-btn.cancelled.active { background: var(--muted); border-color: var(--muted); }
+  .refresh-btn { padding: 7px 16px; border-radius: 4px; border: 1.5px solid var(--border); font-size: 0.75rem; font-weight: 600; cursor: pointer; background: var(--white); color: var(--mid); }
+  .refresh-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* TABLE */
+  .table-wrap { background: var(--white); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead { background: var(--charcoal); }
+  thead th { padding: 12px 16px; text-align: left; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #faf8f5; }
+  td { padding: 14px 16px; color: var(--charcoal); vertical-align: middle; }
+  .patient-name { font-weight: 600; }
+  .patient-phone a { color: var(--red); text-decoration: none; font-weight: 500; }
+  .treatment-tag { display: inline-block; background: var(--bg); padding: 3px 10px; border-radius: 100px; font-size: 0.7rem; font-weight: 600; color: var(--mid); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+  .badge.pending  { background: #fef3e2; color: #d68910; }
+  .badge.confirmed { background: #eafaf1; color: #1e8449; }
+  .badge.completed { background: #e8f4fd; color: #1a5276; }
+  .badge.cancelled { background: #f2f3f4; color: #7f8c8d; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .act-btn { padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border); font-size: 0.68rem; font-weight: 600; cursor: pointer; background: var(--white); transition: all 0.15s; }
+  .act-btn.confirm { color: var(--green); border-color: var(--green); }
+  .act-btn.confirm:hover { background: var(--green); color: var(--white); }
+  .act-btn.complete { color: var(--blue); border-color: var(--blue); }
+  .act-btn.complete:hover { background: var(--blue); color: var(--white); }
+  .act-btn.cancel { color: var(--muted); }
+  .act-btn.cancel:hover { background: var(--muted); color: var(--white); }
+  .act-btn.delete { color: var(--red); border-color: var(--red-light); }
+  .act-btn.delete:hover { background: var(--red); color: var(--white); }
+  .wa-btn { color: #25D366; border-color: #25D366; }
+  .wa-btn:hover { background: #25D366; color: var(--white); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.88rem; }
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 0.88rem; }
+
+  /* DATE / CONCERN CELL */
+  .concern-text { color: var(--mid); font-size: 0.75rem; font-style: italic; max-width: 180px; }
+  .datetime-text { font-size: 0.78rem; color: var(--mid); }
+
+  @media (max-width: 768px) {
+    main { padding: 16px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    header { padding: 0 16px; }
+    .table-wrap { overflow-x: auto; }
+    table { min-width: 700px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">Ragini's Derma Clinic</div>
+    <div class="login-title">Admin Login</div>
+    <div class="login-group">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="admin@raginisd clinic.com" autocomplete="email">
+    </div>
+    <div class="login-group">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <header>
+    <div class="hdr-brand">
+      <span>Ragini's Derma Clinic</span>
+      <span>Appointment Dashboard</span>
+    </div>
+    <div class="hdr-right">
+      <span class="hdr-user" id="adminEmail"></span>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card red">
+        <div class="stat-val" id="st-total">—</div>
+        <div class="stat-label">Total Requests</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-val" id="st-pending">—</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-val" id="st-confirmed">—</div>
+        <div class="stat-label">Confirmed</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-val" id="st-completed">—</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <h2>Appointments</h2>
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn pending" onclick="setFilter('pending', this)">Pending</button>
+      <button class="filter-btn confirmed" onclick="setFilter('confirmed', this)">Confirmed</button>
+      <button class="filter-btn completed" onclick="setFilter('completed', this)">Completed</button>
+      <button class="filter-btn cancelled" onclick="setFilter('cancelled', this)">Cancelled</button>
+      <button class="refresh-btn" onclick="loadBookings()">↻ Refresh</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="loading" id="tableLoading">Loading appointments...</div>
+      <table id="bookingTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Patient</th>
+            <th>Mobile</th>
+            <th>Treatment</th>
+            <th>Preferred Date/Time</th>
+            <th>Concern</th>
+            <th>Status</th>
+            <th>Booked On</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bookingBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="icon">📋</div>
+        <p>No appointments found for this filter.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ══════════════════════════════════════
+  // SUPABASE — same keys as main site
+  // ══════════════════════════════════════
+  const SUPABASE_URL = 'https://xjxnnvpbamzajocbaajr.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqeG5udnBiYW16YWpvY2JhYWpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjk0MzcsImV4cCI6MjA4ODEwNTQzN30.zqxSN7kv3hASKbvYNTVDWXmyBWZ0c-Akls6wl8ND9-g';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let allBookings = [];
+  let currentFilter = 'all';
+
+  // ── AUTH ──
+  async function checkSession() {
+    const { data } = await db.auth.getSession();
+    if (data.session) {
+      showDashboard(data.session.user.email);
+    }
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPass').value;
+    const err   = document.getElementById('loginErr');
+    err.style.display = 'none';
+
+    try {
+      const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      showDashboard(data.user.email);
+    } catch(e) {
+      err.textContent = e.message || 'Login failed. Check credentials.';
+      err.style.display = 'block';
+    }
+  }
+
+  document.getElementById('loginPass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogout() {
+    await db.auth.signOut();
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  function showDashboard(email) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('adminEmail').textContent = email;
+    loadBookings();
+  }
+
+  // ── LOAD BOOKINGS ──
+  async function loadBookings() {
+    document.getElementById('tableLoading').style.display = 'block';
+    document.getElementById('bookingTable').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'none';
+
+    try {
+      const { data, error } = await db
+        .from('appointments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      allBookings = data || [];
+      updateStats();
+      renderTable();
+    } catch(e) {
+      document.getElementById('tableLoading').textContent = 'Error loading: ' + e.message;
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('st-total').textContent = allBookings.length;
+    document.getElementById('st-pending').textContent   = allBookings.filter(b => b.status === 'pending').length;
+    document.getElementById('st-confirmed').textContent = allBookings.filter(b => b.status === 'confirmed').length;
+    document.getElementById('st-completed').textContent = allBookings.filter(b => b.status === 'completed').length;
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    const filtered = currentFilter === 'all'
+      ? allBookings
+      : allBookings.filter(b => b.status === currentFilter);
+
+    document.getElementById('tableLoading').style.display = 'none';
+
+    if (filtered.length === 0) {
+      document.getElementById('bookingTable').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('bookingTable').style.display = 'table';
+
+    const tbody = document.getElementById('bookingBody');
+    tbody.innerHTML = filtered.map((b, i) => {
+      const dt = b.preferred_datetime
+        ? new Date(b.preferred_datetime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+        : '<span style="color:var(--muted)">Not specified</span>';
+      const booked = new Date(b.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+      const name = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+      const waMsg = `Hi ${b.first_name}, your appointment at Ragini's Derma Clinic for ${b.treatment} has been confirmed. Please arrive on time. Thank you!`;
+      return `
+        <tr id="row-${b.id}">
+          <td style="color:var(--muted);font-size:0.72rem;">${i + 1}</td>
+          <td><div class="patient-name">${name}</div></td>
+          <td class="patient-phone">
+            <a href="tel:${b.phone}">${b.phone}</a>
+          </td>
+          <td><span class="treatment-tag">${b.treatment || '—'}</span></td>
+          <td><div class="datetime-text">${dt}</div></td>
+          <td><div class="concern-text">${b.concern || '—'}</div></td>
+          <td><span class="badge ${b.status}">${b.status}</span></td>
+          <td><div class="datetime-text">${booked}</div></td>
+          <td>
+            <div class="actions">
+              ${b.status !== 'confirmed' && b.status !== 'completed' ? `<button class="act-btn confirm" onclick="updateStatus('${b.id}','confirmed')">Confirm</button>` : ''}
+              ${b.status === 'confirmed' ? `<button class="act-btn complete" onclick="updateStatus('${b.id}','completed')">Done</button>` : ''}
+              ${b.status !== 'cancelled' ? `<button class="act-btn cancel" onclick="updateStatus('${b.id}','cancelled')">Cancel</button>` : ''}
+              <a href="https://wa.me/91${b.phone.replace(/\D/g,'').slice(-10)}?text=${encodeURIComponent(waMsg)}" target="_blank"><button class="act-btn wa-btn">WhatsApp</button></a>
+              <button class="act-btn delete" onclick="deleteAppt('${b.id}')">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function updateStatus(id, status) {
+    try {
+      const { error } = await db.from('appointments').update({ status }).eq('id', id);
+      if (error) throw error;
+      const appt = allBookings.find(b => b.id === id);
+      if (appt) appt.status = status;
+      updateStats();
+      renderTable();
+    } catch(e) { alert('Update failed: ' + e.message); }
+  }
+
+  async function deleteAppt(id) {
+    if (!confirm('Delete this appointment? This cannot be undone.')) return;
+    try {
+      const { error } = await db.from('appointments').delete().eq('id', id);
+      if (error) throw error;
+      allBookings = allBookings.filter(b => b.id !== id);
+      updateStats();
+      renderTable();
+    } catch(e) { alert('Delete failed: ' + e.message); }
+  }
+
+  // Init
+  checkSession();
+</script>
+</body>
+</html>
