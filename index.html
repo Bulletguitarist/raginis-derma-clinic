@@ -1394,18 +1394,30 @@
     btn.style.opacity = '0.7';
 
     try {
-      const { error } = await db.from('appointments').insert([{
-        first_name:         firstName,
-        last_name:          lastName,
-        phone:              phone,
-        treatment:          treatment,
-        preferred_datetime: datetime || null,
-        concern:            concern || null,
-        status:             'pending',
-        created_at:         new Date().toISOString()
-      }]);
+     const res = await fetch(SUPABASE_URL + '/rest/v1/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone,
+          treatment: treatment,
+          preferred_datetime: datetime || null,
+          concern: concern || null,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        })
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || res.statusText);
+      }
 
       // Success
       successBox.innerHTML = `
