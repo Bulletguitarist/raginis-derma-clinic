@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNDMDM5MkIiLz4KICA8dGV4dCB4PSIzMiIgeT0iNDYiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCBzZXJpZiIgZm9udC1zaXplPSIzOCIgZm9udC13ZWlnaHQ9ImJvbGQiIAogICAgICAgIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5SPC90ZXh0Pgo8L3N2Zz4=">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNDMDM5MkIiLz4KICA8dGV4dCB4PSIzMiIgeT0iNDYiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCBzZXJpZiIgZm9udC1zaXplPSIzOCIgZm9udC13ZWlnaHQ9ImJvbGQiIAogICAgICAgIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5SPC90ZXh0Pgo8L3N2Zz4=">
 <title>Ragini's Derma Clinic — Advanced Dermatology & Skin Treatments | Gokhalenagar, Pune</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -753,10 +755,10 @@
       Dermatologist-Led Skin Clinic &nbsp;·&nbsp; Est. 2020 &nbsp;·&nbsp; Gokhalenagar, Pune
     </div>
     <h1 class="hero-h1">
-      Clinical Skin Care<br><em>Real Results</em>
+      Clinical Skin Care.<br><em>Real Results.</em>
     </h1>
     <p class="hero-sub">
-      Advanced dermatology, laser treatments, chemical peels & anti-aging procedures delivered in a hygienic, structured clinical environment in Pune.
+      Advanced dermatology, laser treatments, chemical peels & anti-aging procedures — delivered in a hygienic, structured clinical environment in Pune.
     </p>
     <div class="hero-tags">
       <span class="hero-tag">Laser Treatments</span>
@@ -1394,30 +1396,18 @@
     btn.style.opacity = '0.7';
 
     try {
-     const res = await fetch(SUPABASE_URL + '/rest/v1/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          phone: phone,
-          treatment: treatment,
-          preferred_datetime: datetime || null,
-          concern: concern || null,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        })
-      });
+      const { error } = await db.from('appointments').insert([{
+        first_name:         firstName,
+        last_name:          lastName,
+        phone:              phone,
+        treatment:          treatment,
+        preferred_datetime: datetime || null,
+        concern:            concern || null,
+        status:             'pending',
+        created_at:         new Date().toISOString()
+      }]);
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || res.statusText);
-      }
+      if (error) throw error;
 
       // Success
       successBox.innerHTML = `
